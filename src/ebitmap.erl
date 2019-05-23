@@ -12,7 +12,7 @@
 -export([is_subset/2]).
 -export([get_cardinality/1]).
 -export([statistic/1]).
--export([f/1]).
+-export([i/1]).
 
 -on_load(init/0).
 
@@ -32,11 +32,11 @@ intersection(_M1, _M2) ->
 union(_M1, _M2) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
--spec serialize(reference()) -> {ok, binary()}.
+-spec serialize(reference()) -> binary().
 serialize(_M) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
--spec deserialize(reference()) -> {ok, binary()}.
+-spec deserialize(binary()) -> reference().
 deserialize(_M) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
@@ -68,5 +68,5 @@ get_cardinality(_M) ->
 statistic(_M) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
-f(_BM) ->
+i(_BM) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).

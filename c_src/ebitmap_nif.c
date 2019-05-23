@@ -4,6 +4,8 @@
 #include "CRoaring/roaring.h"
 #include "mylog.h"
 
+#define BITMAP_CAPCITY 8192
+
 static ERL_NIF_TERM ATOM_OK;
 static ERL_NIF_TERM ATOM_TRUE;
 static ERL_NIF_TERM ATOM_FALSE;
@@ -14,9 +16,11 @@ typedef struct rbm_context_s {
 
 static void rbm_dtor(ErlNifEnv* env, void* obj) {
     rbm_context_t *p = (rbm_context_t*)obj;
-    LOG("destroy rbm: %p -> %p", p, p->r);
-    roaring_bitmap_free(p->r);
-    p->r = NULL;
+    LOG("destroy rbm: %p ---free--+> %p", p, p->r);
+    if (p->r) {
+        roaring_bitmap_free(p->r);
+        p->r = NULL;
+    }
 }
 
 static int nifload(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
@@ -39,7 +43,7 @@ static int nifload(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
 static ERL_NIF_TERM create(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     ErlNifResourceType* res_type = (ErlNifResourceType*)enif_priv_data(env);
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
-    res->r = roaring_bitmap_create_with_capacity(8 * 1024);
+    res->r = roaring_bitmap_create_with_capacity(BITMAP_CAPCITY);
     LOG("priv_data => %p, res => %p, res->r => %p", res_type, res, res->r);
     ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
@@ -57,7 +61,7 @@ static ERL_NIF_TERM deserialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM arg
     ErlNifResourceType* res_type = (ErlNifResourceType*)enif_priv_data(env);
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
     res->r = ro;
-    ERL_NIF_TERM ret = enif_make_tuple2(env, ATOM_OK, enif_make_resource(env, res));
+    ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
     return ret;
 }
@@ -127,7 +131,7 @@ static ERL_NIF_TERM create_of(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     }
 
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
-    res->r = roaring_bitmap_create_with_capacity(8 * 1024);
+    res->r = roaring_bitmap_create_with_capacity(BITMAP_CAPCITY);
     ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
     ERL_NIF_TERM newargv[2];
@@ -250,17 +254,31 @@ static ERL_NIF_TERM statistic(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     return enif_make_list_from_array(env, list, sizeof(list)/sizeof(list[0]));
 }
 
-static ERL_NIF_TERM f(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
+#define ARRLEN(arr) sizeof(arr)/sizeof(arr[0])
+
+static ERL_NIF_TERM i(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     ErlNifResourceType* res_type = (ErlNifResourceType*)enif_priv_data(env);
-    void* res;
-    enif_get_resource(env, argv[0], res_type, &res);
+    rbm_context_t* res = NULL;
+    enif_get_resource(env, argv[0], res_type, (void**)&res);
     LOG("f: objp => %p", res);
-    enif_release_resource(res);
+    roaring_uint32_iterator_t* it = roaring_create_iterator(res->r);
+    uint32_t buffer[256];
+    uint32_t counter = 0;
+    while (true) {
+        uint32_t ret = roaring_read_uint32_iterator(it, buffer, ARRLEN(buffer));
+        for (uint32_t j = 0; j < ret; j++) {
+            counter += buffer[j];
+            LOG("[%u] => %u", j, buffer[j]);
+        }
+        if (ret < ARRLEN(buffer)) break;
+    }
+    roaring_free_uint32_iterator(it);
+    
     return ATOM_OK;
 }
 
 static ErlNifFunc nif_funcs[] = {
-    {"f", 1, f},
+    {"i", 1, i},
     {"create", 0, create},
     {"create", 1, create_of},
     {"serialize", 1, serialize},
