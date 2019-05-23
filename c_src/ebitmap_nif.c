@@ -1,12 +1,8 @@
 #include "erl_nif.h"
-#include "roaring.h"
+#include "CRoaring/roaring.h"
 #include <errno.h>
 
-#ifdef NIF_DEBUG
-#define LOG(fmt, ...) enif_fprintf(stdout, "%s#%d> " fmt "\r\n", __FUNCTION__,__LINE__, __VA_ARGS__)
-#else
-#define LOG(fmt, ...) 
-#endif
+#include "mylog.h"
 
 static ERL_NIF_TERM ATOM_OK;
 static ERL_NIF_TERM ATOM_TRUE;
@@ -279,4 +275,4 @@ static ErlNifFunc nif_funcs[] = {
     {"is_subset", 2, is_subset}
 };
 
-ERL_NIF_INIT(bitmap, nif_funcs, nifload, NULL,NULL,NULL)
+ERL_NIF_INIT(ebitmap, nif_funcs, nifload, NULL,NULL,NULL)

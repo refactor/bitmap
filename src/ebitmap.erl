@@ -1,4 +1,4 @@
--module(bitmap).
+-module(ebitmap).
 -export([serialize/1]).
 -export([deserialize/1]).
 -export([create/0]).
