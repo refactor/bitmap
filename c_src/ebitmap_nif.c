@@ -1,7 +1,7 @@
-#include "erl_nif.h"
-#include "CRoaring/roaring.h"
+#include <erl_nif.h>
 #include <errno.h>
 
+#include "CRoaring/roaring.h"
 #include "mylog.h"
 
 static ERL_NIF_TERM ATOM_OK;
@@ -39,9 +39,9 @@ static int nifload(ErlNifEnv* env, void** priv_data, ERL_NIF_TERM load_info) {
 static ERL_NIF_TERM create(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
     ErlNifResourceType* res_type = (ErlNifResourceType*)enif_priv_data(env);
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
-    res->r = roaring_bitmap_create();
+    res->r = roaring_bitmap_create_with_capacity(8 * 1024);
     LOG("priv_data => %p, res => %p, res->r => %p", res_type, res, res->r);
-    ERL_NIF_TERM ret = enif_make_tuple2(env, ATOM_OK, enif_make_resource(env, res));
+    ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
     return ret;
 }
@@ -70,7 +70,7 @@ static ERL_NIF_TERM serialize(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
 
     size_t sz = roaring_bitmap_size_in_bytes(res->r);
     ERL_NIF_TERM ret;
-    char* data = enif_make_new_binary(env, sz, &ret);
+    char* data = (char*) enif_make_new_binary(env, sz, &ret);
     if (roaring_bitmap_serialize(res->r, data) != sz) {
         LOG("sz: %u", sz);
         return enif_raise_exception(env, enif_make_atom(env, "failed_serialize"));
@@ -113,7 +113,7 @@ static ERL_NIF_TERM yield_create_of(ErlNifEnv* env, int argc, const ERL_NIF_TERM
     } while (enif_get_list_cell(env, tail, &head, &tail));
 
     LOG("priv_data => %p, res => %p, res->r => %p, elapse: %lu(us)", res_type, res, res->r, latest-begin);
-    ERL_NIF_TERM ret = enif_make_tuple2(env, ATOM_OK, argv[1]);
+    ERL_NIF_TERM ret = argv[1];
     return ret;
 }
 
@@ -127,7 +127,7 @@ static ERL_NIF_TERM create_of(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[
     }
 
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
-    res->r = roaring_bitmap_create();
+    res->r = roaring_bitmap_create_with_capacity(8 * 1024);
     ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
     ERL_NIF_TERM newargv[2];
@@ -176,7 +176,7 @@ static ERL_NIF_TERM bitmap_intersection(ErlNifEnv* env, int argc, const ERL_NIF_
     rbm_context_t *res = (rbm_context_t*)enif_alloc_resource(res_type, sizeof(*res));
     res->r = roaring_bitmap_and(res1->r, res2->r);
     LOG("priv_data => %p, res => %p, res->r => %p", res_type, res, res->r);
-    ERL_NIF_TERM ret = enif_make_tuple2(env, ATOM_OK, enif_make_resource(env, res));
+    ERL_NIF_TERM ret = enif_make_resource(env, res);
     enif_release_resource(res);
     return ret;
 }
@@ -210,7 +210,7 @@ static ERL_NIF_TERM add(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {
             !enif_get_uint(env, argv[1], &i))
         return enif_make_badarg(env);
     roaring_bitmap_add(res->r, i);
-    return ATOM_OK;
+    return argv[0];
 }
 
 static ERL_NIF_TERM get_cardinality(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[]) {

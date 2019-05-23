@@ -1,8 +1,9 @@
 -module(ebitmap).
--export([serialize/1]).
--export([deserialize/1]).
+
 -export([create/0]).
 -export([create/1]).
+-export([serialize/1]).
+-export([deserialize/1]).
 -export([add/2]).
 -export([intersection/2]).
 -export([union/2]).
@@ -24,6 +25,7 @@ init() ->
                            end, atom_to_list(?MODULE)),
     erlang:load_nif(SoName, 0).
 
+-spec intersection(reference(), reference()) -> reference().
 intersection(_M1, _M2) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
@@ -38,11 +40,11 @@ serialize(_M) ->
 deserialize(_M) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
--spec create() -> {ok, reference()}.
+-spec create() -> reference().
 create() ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
--spec create(list()) -> {ok, reference()}.
+-spec create(list()) -> reference().
 create(_Vals) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
@@ -55,6 +57,7 @@ equals(_M1, _M2) ->
 is_subset(_M1, _M2) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
+-spec add(reference(), non_neg_integer()) -> reference().
 add(_BM, _I) ->
     erlang:nif_error({nif_not_loaded, ?MODULE}).
 
